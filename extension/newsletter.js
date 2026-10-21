@@ -12,7 +12,7 @@
     for (const box of candidates) {
       if (!visible(box)) continue;
       const text = (box.innerText || '').replace(/\s+/g, ' ').trim();
-      if (text.length > 10000 || /\bcookies?\b|\bcheckout\b|\bsign in\b|\blog in\b/i.test(text)) continue;
+      if (text.length > 10000 || /\bcookies?\b|\bcheckout\b|\bsign in\b|\blog in\b|\bcontact (?:us|support)\b/i.test(text)) continue;
       if (box.querySelector('input[type="password"],input[autocomplete="current-password"],input[autocomplete="new-password"],input[autocomplete="cc-number"]')) continue;
       const email = box.querySelector('input[type="email"],input[autocomplete="email"]');
       const marketing = /\bnewsletter\b|\bmailing list\b|\bemail (?:updates|offers|marketing|news)\b|\bsubscribe\b|\bsign up\b|\bjoin\b.{0,40}\b(?:community|makers|list)\b/i.test(text);
