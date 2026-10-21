@@ -15,11 +15,24 @@ public final class Policy {
         "continue without accepting", "continue without agreeing", "tout refuser", "refuser tout",
         "alle ablehnen", "nur notwendige cookies", "rechazar todo", "rechazar todas", "solo cookies necesarias"
     ));
+    private static final Set<String> NEWSLETTER_CLOSE = new HashSet<>(Arrays.asList(
+        "close", "close dialog", "close form", "close popup", "close pop-up", "close modal",
+        "close newsletter", "dismiss", "no thanks", "no thank you", "×", "✕", "✖", "x"
+    ));
     public static String normalize(String s) {
         return java.text.Normalizer.normalize(s == null ? "" : s, java.text.Normalizer.Form.NFKC)
-            .toLowerCase(Locale.ROOT).replace('\u2019', '\'').replaceAll("\\s+", " ").trim().replaceAll("[.!]$", "");
+            .toLowerCase(Locale.ROOT).replace('\u2019', '\'')
+            .replaceAll("[‐‑–—]", "-").replaceAll("\\s+", " ").trim().replaceAll("[.!]$", "");
     }
     public static boolean reject(String label) { return REJECT.contains(normalize(label)); }
+    public static boolean newsletterClose(String label) { return NEWSLETTER_CLOSE.contains(normalize(label)); }
+    public static boolean newsletterContext(String text, boolean hasEmailField) {
+        String value = normalize(text);
+        if (value.length() > 10000 || value.matches("(?s).*(?:\\bcookies?\\b|\\bcheckout\\b|\\bsign in\\b|\\blog in\\b|\\bcontact (?:us|support)\\b|\\bpassword\\b|\\bcredit card\\b|\\bbilling\\b|\\bpayment\\b|\\bsubscribe to continue\\b|\\bcontinue reading\\b).*")) return false;
+        boolean explicitMarketing = value.matches("(?s).*(?:\\bnewsletter\\b|\\bmailing list\\b|\\bemail (?:updates|offers|marketing|news)\\b).*");
+        boolean signupWithEmail = hasEmailField && value.matches("(?s).*(?:\\bsubscribe\\b|\\bsign up\\b|\\bjoin\\b).*");
+        return explicitMarketing || signupWithEmail;
+    }
     public static boolean cookieContext(String text) {
         return text.toLowerCase(Locale.ROOT).matches("(?s).*\\bcookies?\\b.*") || text.toLowerCase(Locale.ROOT).contains("consent preferences");
     }
