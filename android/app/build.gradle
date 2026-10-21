@@ -5,6 +5,7 @@ def signingStorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
 def signingKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
 def signingKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
 def hasReleaseSigning = signingStorePath && signingStorePassword && signingKeyAlias && signingKeyPassword
+def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '4').toInteger()
 
 android {
     namespace 'uk.co.cookiecalm'
@@ -13,8 +14,8 @@ android {
         applicationId 'uk.co.cookiecalm'
         minSdk 26
         targetSdk 35
-        versionCode 3
-        versionName '0.1.2'
+        versionCode buildNumber
+        versionName "0.1.${buildNumber}"
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
 
