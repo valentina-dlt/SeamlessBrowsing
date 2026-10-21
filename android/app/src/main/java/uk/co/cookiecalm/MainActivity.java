@@ -19,13 +19,19 @@ public final class MainActivity extends Activity {
     private void render() {
         ScrollView scroll = new ScrollView(this); layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(40, 70, 40, 40); scroll.addView(layout); setContentView(scroll);
         text("Cookie Calm", 30);
+        text("For Android Chrome, turn on Accessibility access below. Android does not support Chrome extensions.", 17);
         text("Reject optional cookies in Chrome and Samsung Internet.", 19);
         text("This companion uses Android Accessibility to read visible browser controls and press explicit cookie rejection buttons. It cannot handle every banner. It does not send screen text or browsing history anywhere, and has no Internet permission. You can disable access in Android Settings at any time.", 16);
         Switch enabled = new Switch(this); enabled.setText("Automatic rejection"); enabled.setChecked(prefs().getBoolean("enabled", true));
-        enabled.setOnCheckedChangeListener((v, on) -> prefs().edit().putBoolean("enabled", on).apply()); layout.addView(enabled);
+        enabled.setOnCheckedChangeListener((v, on) -> {
+            prefs().edit().putBoolean("enabled", on).apply();
+            prefs().edit().putString("lastStatus", on ? "Open Chrome and load a page" : "Automatic rejection is off").apply();
+        }); layout.addView(enabled);
         button("Open Accessibility settings", v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
-        text("Choose Installed apps → Cookie Calm → Allow. Samsung may first require App info → menu → Allow restricted settings for a sideloaded APK.", 15);
+        text("Choose Installed apps → Cookie Calm → Allow. If Android blocks the switch, open App info → ⋮ → Allow restricted settings, then return here.", 15);
         String host = prefs().getString("lastHost", "");
+        String status = prefs().getString("lastStatus", "Open Chrome and load a page to check it.");
+        text("Status: " + status, 16);
         if (!host.isEmpty()) {
             Set<String> paused = new HashSet<>(prefs().getStringSet("paused", new HashSet<>()));
             text("Most recently observed site: " + host, 16);
