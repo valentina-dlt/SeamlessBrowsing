@@ -19,6 +19,16 @@ public final class CookieService extends AccessibilityService {
     private final Set<String> browsers = new HashSet<>(Arrays.asList(
         "com.android.chrome", "com.chrome.beta", "com.chrome.dev", "com.sec.android.app.sbrowser"));
     private long lastClick;
+    private static volatile CookieService instance;
+    public static boolean requestScan() {
+        CookieService current = instance;
+        if (current == null) return false;
+        current.handler.post(current::scan);
+        return true;
+    }
+    private void diagnostic(String key, String value) {
+        prefs().edit().putString("diag_" + key, value == null ? "" : value).apply();
+    }
     private boolean pending;
     private String previousHost = "";
     private int attempts;
@@ -26,10 +36,20 @@ public final class CookieService extends AccessibilityService {
 
     @Override public void onServiceConnected() {
         super.onServiceConnected();
+        instance = this;
+        diagnostic("service", "connected");
         handler.postDelayed(this::scan, 700);
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
+        if (event.getPackageName() != null) {
+            prefs().edit()
+                .putString("diag_event_package", event.getPackageName().toString())
+                .putString("diag_event_type", String.valueOf(event.getEventType()))
+                .putLong("diag_event_time", System.currentTimeMillis())
+                .putInt("diag_event_count", prefs().getInt("diag_event_count", 0) + 1)
+                .apply();
+        }
         if (event.getPackageName() == null ||
             !browsers.contains(event.getPackageName().toString()) ||
             !prefs().getBoolean("enabled", true) || pending) return;
@@ -70,7 +90,10 @@ public final class CookieService extends AccessibilityService {
     }
 
     private void report(String status, String host) {
-        SharedPreferences.Editor edit = prefs().edit().putString("lastStatus", status);
+        SharedPreferences.Editor edit = prefs().edit()
+            .putString("lastStatus", status)
+            .putString("diag_result", status)
+            .putLong("diag_result_time", System.currentTimeMillis());
         if (host != null && !host.isEmpty()) edit.putString("lastHost", host);
         edit.apply();
     }
@@ -152,6 +175,10 @@ public final class CookieService extends AccessibilityService {
     }
 
     private void scan() {
+        prefs().edit()
+            .putLong("diag_scan_time", System.currentTimeMillis())
+            .putInt("diag_scan_count", prefs().getInt("diag_scan_count", 0) + 1)
+            .apply();
         if (!prefs().getBoolean("enabled", true)) {
             report("Automatic popup handling is off", "");
             return;
@@ -166,6 +193,18 @@ public final class CookieService extends AccessibilityService {
 
         List<AccessibilityNodeInfo> nodes = new ArrayList<>();
         flatten(root, nodes, 0);
+        diagnostic("root_package", root.getPackageName().toString());
+        diagnostic("node_count", String.valueOf(nodes.size()));
+        String rejectLabel = "";
+        String closeLabel = "";
+        for (AccessibilityNodeInfo node : nodes) {
+            if (!node.isVisibleToUser()) continue;
+            String label = text(node);
+            if (rejectLabel.isEmpty() && Policy.reject(label)) rejectLabel = label;
+            if (closeLabel.isEmpty() && Policy.newsletterClose(label)) closeLabel = label;
+        }
+        diagnostic("reject_label", rejectLabel.isEmpty() ? "none found" : rejectLabel);
+        diagnostic("close_label", closeLabel.isEmpty() ? "none found" : closeLabel);
 
         // Private tabs and text the user has started entering are deliberately excluded.
         for (AccessibilityNodeInfo n : nodes) {
@@ -222,11 +261,20 @@ public final class CookieService extends AccessibilityService {
                     }
                     if (context.length() > 12000 || editable) break;
                     String contextText = context.toString();
-                    if (!Policy.cookieContext(contextText) || Policy.paidChoice(contextText)) continue;
+                    boolean cookieContext = Policy.cookieContext(contextText);
+                    boolean paidChoice = Policy.paidChoice(contextText);
+                    diagnostic("decision", "label=" + text(labelNode) +
+                        "; target=" + target.getClassName() +
+                        "; cookieContext=" + cookieContext +
+                        "; paidChoice=" + paidChoice +
+                        "; groupNodes=" + group.size());
+                    if (!cookieContext || paidChoice) continue;
 
                     lastClick = SystemClock.elapsedRealtime();
                     attempts++;
-                    if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    boolean clicked = target.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    diagnostic("click_result", clicked ? "ACTION_CLICK returned true" : "ACTION_CLICK returned false");
+                    if (clicked) {
                         prefs().edit().putInt("clicks", prefs().getInt("clicks", 0) + 1).apply();
                         report("Pressed the cookie rejection button" + (host.isEmpty() ? "" : " on " + host), host);
                     } else {
@@ -250,6 +298,7 @@ public final class CookieService extends AccessibilityService {
     }
     @Override public void onDestroy() {
         onInterrupt();
+        if (instance == this) instance = null;
         super.onDestroy();
     }
 }
