@@ -1,4 +1,5 @@
 (async () => {
+  document.querySelector('#version').textContent = 'Version ' + chrome.runtime.getManifest().version;
   const toggle = document.querySelector('#enabled'), pause = document.querySelector('#pause'), status = document.querySelector('#status');
   const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
   let host;

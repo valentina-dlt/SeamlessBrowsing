@@ -19,3 +19,8 @@ test('essential categories are preserved and unknown categories are blocked', ()
   for (const label of ['Analytics', 'Advertising cookies', 'Legitimate interests', 'Functional cookies']) assert.equal(P.category(label), 'optional');
   assert.equal(P.category('Partners'), 'unknown');
 });
+
+test('essential-only grammar handles safe variants without accepting ambiguous choices',()=>{
+  for(const label of ['Allow only essential cookies','Use strictly necessary cookies only','Keep only necessary cookies','Reject all non-essential cookies','Decline non essential cookies']) assert.equal(P.classify(label),'reject',label);
+  for(const label of ['Accept necessary and analytics cookies','Accept selected cookies','Allow all cookies','Only accept essential cookies and subscribe','Reject all orders','Do not reject all','Accept all essential cookies']) assert.equal(P.classify(label),null,label);
+});

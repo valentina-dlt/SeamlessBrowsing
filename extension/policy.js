@@ -1,7 +1,7 @@
 /* Cookie Calm — original code, MIT. Never treat a generic Close/OK as rejection. */
 (() => {
   const normalize = text => String(text || '').normalize('NFKC').toLowerCase()
-    .replace(/[’']/g, "'").replace(/\s+/g, ' ').trim().replace(/[.!]$/, '');
+    .replace(/[’']/g, "'").replace(/[‐‑–—]/g, '-').replace(/\s+/g, ' ').trim().replace(/[.!]$/, '');
   const rejectLabels = new Set([
     'reject all', 'reject all cookies', 'reject optional cookies', 'reject non-essential cookies',
     'decline all', 'decline optional cookies', 'deny all', 'refuse all',
@@ -20,7 +20,9 @@
   const paidChoice = text => /(?:subscribe|pay|purchase).{0,45}(?:reject|refuse|without|tracking)|(?:reject|refuse).{0,45}(?:subscribe|pay|purchase)/i.test(text || '');
   function classify(text) {
     const label = normalize(text);
-    return rejectLabels.has(label) ? 'reject' : preferences.has(label) ? 'preferences' : save.has(label) ? 'save' : null;
+    const essentialOnly = /^(?:(?:accept|allow|use|keep) (?:only (?:strictly )?(?:necessary|essential)(?: cookies)?|(?:strictly )?(?:necessary|essential)(?: cookies)? only)|only (?:accept|allow|use|keep) (?:strictly )?(?:necessary|essential)(?: cookies)?|(?:strictly )?(?:necessary|essential)(?: cookies)? only)$/;
+    const declineOptional = /^(?:reject|decline|deny|refuse) (?:all(?: (?:optional|non[ -]essential))?(?: cookies)?|(?:optional|non[ -]essential) cookies)$/;
+    return (rejectLabels.has(label) || essentialOnly.test(label) || declineOptional.test(label)) ? 'reject' : preferences.has(label) ? 'preferences' : save.has(label) ? 'save' : null;
   }
   function category(text) {
     const label = normalize(text);

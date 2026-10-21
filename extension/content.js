@@ -6,6 +6,8 @@
   let settings = {enabled: true, pausedSites: [], closeNewsletters: true}, stopped = false, timer, observer;
   let actions = 0, lastAction = 0, opening = false;
   const clicked = new WeakSet();
+  const providerOpen = new WeakSet();
+  let observedRoots = new WeakSet();
   const host = location.ancestorOrigins?.length ? new URL(location.ancestorOrigins[location.ancestorOrigins.length - 1]).hostname : location.hostname;
   const visible = el => {
     const style = getComputedStyle(el), r = el.getBoundingClientRect();
@@ -18,12 +20,18 @@
     const found = [document];
     // Open shadow trees only; closed shadow trees remain untouched.
     for (let i = 0; i < found.length && i < 30; i++) {
-      for (const el of found[i].querySelectorAll('*')) if (el.shadowRoot) found.push(el.shadowRoot);
+      for (const el of found[i].querySelectorAll('*')) if (el.shadowRoot && !found.includes(el.shadowRoot)) {
+        found.push(el.shadowRoot);
+        if (observer && !observedRoots.has(el.shadowRoot)) {
+          observer.observe(el.shadowRoot, {childList:true, subtree:true, attributes:true});
+          observedRoots.add(el.shadowRoot);
+        }
+      }
     }
     return found;
   }
   function containers(root) {
-    return [...root.querySelectorAll(`${KNOWN},[role="dialog"],[role="alertdialog"],[aria-modal="true"]`)]
+    return [...root.querySelectorAll(`${KNOWN},[role="dialog"],[role="alertdialog"],[aria-modal="true"],dialog[open]`)]
       .filter(el => visible(el) && P.cookieContext(el.innerText) && el.innerText.length < 35000);
   }
   function click(el, dismissNewsletter = false) {
@@ -35,6 +43,36 @@
     el.click();
     return true;
   }
+  function providerAction(root) {
+    for (const {box, rule} of CookieCalmProviders.find(root)) {
+      if (!visible(box) || P.paidChoice(box.innerText)) continue;
+      const controls = selector => selector ? [...box.querySelectorAll(selector)].filter(visible) : [];
+      const reject = controls(rule.reject)[0];
+      if (reject && click(reject)) return true;
+      // Use provider-specific save controls only after all category states are known.
+      if (rule.panel && box.matches(rule.panel)) {
+        const switches = [...box.querySelectorAll('input[type="checkbox"],[role="switch"]')];
+        const states = switches.map(el => {
+          const proxy = visible(el) ? el : [...(el.labels || [])].find(visible);
+          const text = [el.getAttribute('aria-label'), ...[...(el.labels || [])].map(l=>l.innerText)].filter(Boolean).join(' ');
+          const category = P.category(text);
+          const kind = category === 'essential' ? 'essential' : el.matches(rule.optional) ? 'optional' : category;
+          return {el,proxy,kind,on:el.matches('input') ? el.checked : el.getAttribute('aria-checked')==='true'};
+        });
+        if (states.length && states.every(s=>s.kind !== 'unknown' && (s.kind==='essential' || s.proxy))) {
+          const on = states.find(s=>s.kind==='optional' && s.on);
+          if (on) { if (click(on.proxy)) return true; continue; }
+          const save = controls(rule.save)[0];
+          if (save && click(save)) return true;
+        }
+      }
+      if (!providerOpen.has(box)) {
+        const manage = controls(rule.manage)[0];
+        if (manage && click(manage)) { providerOpen.add(box); return true; }
+      }
+    }
+    return false;
+  }
   function scan() {
     if (stopped || !settings.enabled || settings.pausedSites.includes(host) || document.hidden) return;
     if (Date.now() - lastAction < 650) return;
@@ -45,6 +83,7 @@
     if (settings.closeNewsletters !== false) for (const root of scanRoots) {
       for (const close of CookieCalmNewsletter.find(root, visible)) if (click(close, true)) return;
     }
+    for (const root of scanRoots) if (providerAction(root)) return;
     for (const root of scanRoots) for (const box of containers(root)) {
       if (P.paidChoice(box.innerText)) continue;
       const buttons = [...box.querySelectorAll(BUTTONS)].filter(visible);
@@ -78,7 +117,7 @@
     }
   }
   const schedule = () => { if (!stopped && !timer) timer = setTimeout(() => {timer = null; scan();}, 400); };
-  function stop() { stopped = true; observer?.disconnect(); clearTimeout(timer); clearInterval(poll); }
+  function stop() { stopped = true; observer?.disconnect(); clearTimeout(timer); timer = null; clearInterval(poll); }
   let poll;
   chrome.storage.sync.get({enabled: true, pausedSites: [], closeNewsletters: true}).then(value => {
     settings = value;
@@ -95,5 +134,14 @@
     for (const key of ['enabled', 'pausedSites', 'closeNewsletters']) if (changes[key]) settings[key] = changes[key].newValue;
     schedule();
   });
-  addEventListener('pagehide', stop, {once: true});
+  addEventListener('pagehide', stop);
+  addEventListener('pageshow', event => {
+    if (!event.persisted || !stopped || !observer) return;
+    stopped = false; observedRoots = new WeakSet();
+    observer.observe(document.documentElement, {childList:true, subtree:true, attributes:true, attributeFilter:['class','style','hidden','aria-hidden','aria-checked']});
+    poll = setInterval(schedule, 1500);
+    setTimeout(() => clearInterval(poll), 120000);
+    schedule();
+  });
+  addEventListener('visibilitychange', schedule);
 })();

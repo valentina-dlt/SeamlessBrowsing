@@ -18,12 +18,12 @@
       const marketing = /\bnewsletter\b|\bmailing list\b|\bemail (?:updates|offers|marketing|news)\b|\bsubscribe\b|\bsign up\b|\bjoin\b.{0,40}\b(?:community|makers|list)\b/i.test(text);
       if (!marketing || (!email && !/\bnewsletter\b|\bmailing list\b|\bemail (?:updates|offers|marketing|news)\b/i.test(text))) continue;
       // Preserve any form the user has begun completing, including autofilled fields.
-      if ([...box.querySelectorAll('input:not([type="hidden"]),textarea')].some(el => (el.value || '').trim())) continue;
+      if ([...box.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),textarea')].some(el => (el.value || '').trim())) continue;
       const close = [...box.querySelectorAll('button,[role="button"],a')].find(el => {
         if (!visible(el) || el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
         if (el.tagName === 'A' && el.getAttribute('href') && el.getAttribute('href') !== '#') return false;
         if (el.closest('form') && (el.tagName !== 'BUTTON' || el.type !== 'button')) return false;
-        const label = (el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || '').trim().toLowerCase();
+        const label = (el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || el.querySelector('svg title')?.textContent || '').trim().toLowerCase();
         return /^(?:close(?: (?:dialog|form|popup|pop-up|modal|newsletter))?|dismiss|no[, ]+thanks|no thank you|×|✕|✖|x)$/.test(label) ||
           (el.matches('button.klaviyo-close-form') && !!box.closest('[class*="klaviyo"]'));
       });

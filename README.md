@@ -25,3 +25,7 @@ See RESEARCH.md for sources and design decisions.
 ## Email signup popups (0.2.0)
 
 Desktop Chrome now closes recognized email-marketing overlays through their visible close/X control. Enabled by default, with a separate toolbar switch. Inline newsletter forms, login/checkout dialogs and fields already containing input remain untouched. Delayed overlays are detected through the page observer. Croft Mill loads Klaviyo, but its newsletter overlay did not reappear during inspection, so live confirmation remains pending. The Android companion currently handles cookie banners only.
+
+## Provider-aware coverage (0.3.0)
+
+Added reviewed rejection controls for 13 CMPs, essential-only wording grammar, open-shadow-root observers and page-restoration handling. Added a browser matrix for provider controls, multi-stage preference flows, and newsletter variants. See [RESEARCH.md](RESEARCH.md) for source-backed findings and the distinction between fixture validation and live coverage. Provider selector attribution and licence are included with the extension. The toolbar now displays the loaded version. Desktop support exceeds the experimental Android companion's coverage.

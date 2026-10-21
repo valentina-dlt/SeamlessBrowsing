@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Cookie Calm",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Reject optional cookies and close email signup popups, with per-site pause.",
   "permissions": [
     "storage",
@@ -19,6 +19,7 @@
       ],
       "js": [
         "policy.js",
+        "providers.js",
         "newsletter.js",
         "content.js"
       ],
