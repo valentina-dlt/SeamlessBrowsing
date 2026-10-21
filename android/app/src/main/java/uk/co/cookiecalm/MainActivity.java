@@ -1,7 +1,6 @@
 package uk.co.cookiecalm;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -25,15 +24,11 @@ public final class MainActivity extends Activity {
     private boolean serviceEnabled() {
         AccessibilityManager manager = (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
         if (manager == null) return false;
-        ComponentName expected = new ComponentName(this, CookieService.class);
         for (AccessibilityServiceInfo info : manager.getEnabledAccessibilityServiceList(
                 AccessibilityServiceInfo.FEEDBACK_ALL_MASK)) {
-            if (info.getResolveInfo() != null && info.getResolveInfo().serviceInfo != null) {
-                ComponentName actual = new ComponentName(
-                    info.getResolveInfo().serviceInfo.packageName,
-                    info.getResolveInfo().serviceInfo.name);
-                if (expected.equals(actual)) return true;
-            }
+            if (info.getResolveInfo() != null && info.getResolveInfo().serviceInfo != null &&
+                getPackageName().equals(info.getResolveInfo().serviceInfo.packageName) &&
+                info.getResolveInfo().serviceInfo.name.endsWith("CookieService")) return true;
         }
         return false;
     }
