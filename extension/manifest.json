@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Cookie Calm",
+  "version": "0.1.0",
+  "description": "Quietly reject optional cookies. Local processing, with a pause for each site.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Cookie Calm"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": [
+        "policy.js",
+        "content.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuIWfr+xckD5rdEBU1lNcNrf9efe07XSPStC79k8RWNhaEaspb2+khwxZI5584Ijd3UMYicboSojghnZkTJOgcGQUVScYFqQWj93983o1sX6s+gAL6w+Jm9fkIV9aNCFS4uGedk//68ZE054o60qFI8jwNIe8C5EBol90EV/nX1XncJz/avkJct7zPC1nF5SzMEiR7vtAadnu3FAuhjjX/ollTu7FTVSynCDjSc9ucY+fHbpESML19X5GqUPtCTSrcjfHOOFxaiXbqzUBBYH248MEz615i9OSy8gmlDyiR0+dJZSxKNSBZONvOmtUeZlKmjw2UAvmHITgcPrtyVfV7QIDAQAB"
+}
