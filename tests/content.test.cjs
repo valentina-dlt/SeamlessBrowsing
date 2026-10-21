@@ -16,7 +16,7 @@ async function fixture({text = 'We use cookies', label = 'Reject all', paused = 
     matches: selector => (known && selector.includes('#onetrust-banner-sdk')) || (shopify && selector === '#shopify-pc__banner')};
   let listener;
   const context = {
-    CookieCalmPolicy: P, location: {hostname:'example.com'}, innerHeight:1000, innerWidth:1000,
+    CookieCalmPolicy: P, CookieCalmNewsletter: {find:()=>[]}, location: {hostname:'example.com'}, innerHeight:1000, innerWidth:1000,
     getComputedStyle: () => ({display:hidden ? 'none':'block',visibility:'visible',opacity:'1'}),
     document: {hidden:false, activeElement:typing ? {matches:()=>true}:null, documentElement:{}, querySelectorAll: selector => selector === '*' ? []:[box]},
     MutationObserver: class {observe(){} disconnect(){}},

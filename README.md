@@ -21,3 +21,7 @@ Run npm install, npm test, and npx playwright install chromium; npm run test:bro
 Verified 21 October 2026: six JavaScript tests, Java policy tests, the real Chromium extension fixture, Android APK assembly, and Android lint passed in [GitHub Actions run 39636563575](https://github.com/valentina-dlt/SeamlessBrowsing/actions/runs/39636563575). Download the Chrome ZIP and Samsung experimental APK from that run’s Artifacts section. Installation, real-site coverage, Chrome settings sync, and Samsung behaviour have not yet been verified on the user’s devices. This is a development preview; unknown banners may remain visible.
 
 See RESEARCH.md for sources and design decisions.
+
+## Email signup popups (0.2.0)
+
+Desktop Chrome now closes recognized email-marketing overlays through their visible close/X control. Enabled by default, with a separate toolbar switch. Inline newsletter forms, login/checkout dialogs and fields already containing input remain untouched. Delayed overlays are detected through the page observer. Croft Mill loads Klaviyo, but its newsletter overlay did not reappear during inspection, so live confirmation remains pending. The Android companion currently handles cookie banners only.

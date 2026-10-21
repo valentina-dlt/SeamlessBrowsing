@@ -3,7 +3,7 @@
   const P = CookieCalmPolicy;
   const KNOWN = '#shopify-pc__banner,#onetrust-banner-sdk,#onetrust-pc-sdk,#CybotCookiebotDialog,#didomi-notice,#didomi-popup,.qc-cmp2-container,#usercentrics-root,#cookie-notice,#cookie-banner,.cookie-banner,.cookie-consent,[data-cookieconsent]';
   const BUTTONS = 'button,[role="button"],input[type="button"],input[type="submit"]';
-  let settings = {enabled: true, pausedSites: []}, stopped = false, timer, observer;
+  let settings = {enabled: true, pausedSites: [], closeNewsletters: true}, stopped = false, timer, observer;
   let actions = 0, lastAction = 0, opening = false;
   const clicked = new WeakSet();
   const host = location.ancestorOrigins?.length ? new URL(location.ancestorOrigins[location.ancestorOrigins.length - 1]).hostname : location.hostname;
@@ -26,9 +26,9 @@
     return [...root.querySelectorAll(`${KNOWN},[role="dialog"],[role="alertdialog"],[aria-modal="true"]`)]
       .filter(el => visible(el) && P.cookieContext(el.innerText) && el.innerText.length < 35000);
   }
-  function click(el) {
+  function click(el, dismissNewsletter = false) {
     if (stopped || !settings.enabled || settings.pausedSites.includes(host) || clicked.has(el) ||
-        !visible(el) || el.disabled || el.getAttribute('aria-disabled') === 'true' || el.closest('form') ||
+        !visible(el) || el.disabled || el.getAttribute('aria-disabled') === 'true' || (el.closest('form') && !dismissNewsletter) ||
         actions >= 12 || Date.now() - lastAction < 600) return false;
     clicked.add(el); actions++; lastAction = Date.now();
     // No focus(), scrollIntoView(), CSS removal, or synthetic acceptance.
@@ -41,7 +41,11 @@
     // Leave pages alone while the user is entering information.
     const active = document.activeElement;
     if (active && (active.matches('input,textarea,select') || active.isContentEditable)) return;
-    for (const root of roots()) for (const box of containers(root)) {
+    const scanRoots = roots();
+    if (settings.closeNewsletters !== false) for (const root of scanRoots) {
+      for (const close of CookieCalmNewsletter.find(root, visible)) if (click(close, true)) return;
+    }
+    for (const root of scanRoots) for (const box of containers(root)) {
       if (P.paidChoice(box.innerText)) continue;
       const buttons = [...box.querySelectorAll(BUTTONS)].filter(visible);
       // Shopify's native banner uses a plain Decline label and alertdialog role.
@@ -76,19 +80,19 @@
   const schedule = () => { if (!stopped && !timer) timer = setTimeout(() => {timer = null; scan();}, 400); };
   function stop() { stopped = true; observer?.disconnect(); clearTimeout(timer); clearInterval(poll); }
   let poll;
-  chrome.storage.sync.get({enabled: true, pausedSites: []}).then(value => {
+  chrome.storage.sync.get({enabled: true, pausedSites: [], closeNewsletters: true}).then(value => {
     settings = value;
     observer = new MutationObserver(schedule);
     observer.observe(document.documentElement, {childList: true, subtree: true, attributes: true,
       attributeFilter: ['class', 'style', 'hidden', 'aria-hidden', 'aria-checked']});
     poll = setInterval(schedule, 1500);
-    // Observe briefly; permanently running full-page scans are unnecessary.
-    setTimeout(stop, 120000);
+    // Stop polling after two minutes; mutations still catch delayed signup overlays.
+    setTimeout(() => clearInterval(poll), 120000);
     scan();
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'sync') return;
-    for (const key of ['enabled', 'pausedSites']) if (changes[key]) settings[key] = changes[key].newValue;
+    for (const key of ['enabled', 'pausedSites', 'closeNewsletters']) if (changes[key]) settings[key] = changes[key].newValue;
     schedule();
   });
   addEventListener('pagehide', stop, {once: true});
