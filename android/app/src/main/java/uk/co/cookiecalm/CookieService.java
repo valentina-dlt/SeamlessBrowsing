@@ -75,18 +75,6 @@ public final class CookieService extends AccessibilityService {
         edit.apply();
     }
 
-    private boolean startedTyping(List<AccessibilityNodeInfo> nodes) {
-        for (AccessibilityNodeInfo node : nodes) {
-            if (!node.isFocused() || !node.isEditable()) continue;
-            CharSequence value = node.getText();
-            if (value != null && value.length() > 0) {
-                report("Waiting while you type", "");
-                return true;
-            }
-        }
-        return false;
-    }
-
     private boolean hasEmailField(List<AccessibilityNodeInfo> group) {
         for (AccessibilityNodeInfo item : group) {
             if (!item.isEditable()) continue;
@@ -149,6 +137,7 @@ public final class CookieService extends AccessibilityService {
                     !String.valueOf(target.getClassName()).toLowerCase(Locale.ROOT).endsWith("link") &&
                     newsletterDialog(target)) {
                     lastClick = SystemClock.elapsedRealtime();
+                    attempts++;
                     if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                         prefs().edit().putInt("clicks", prefs().getInt("clicks", 0) + 1).apply();
                         report("Closed an email signup popup" + (host.isEmpty() ? "" : " on " + host), host);
