@@ -199,38 +199,41 @@ public final class CookieService extends AccessibilityService {
         if (dismissNewsletter(nodes, host)) return;
 
         boolean sawChoice = false;
-        for (AccessibilityNodeInfo node : nodes) {
-            if (!node.isVisibleToUser() || !node.isEnabled() || !node.isClickable() ||
-                !Policy.reject(text(node))) continue;
-
-            String cls = String.valueOf(node.getClassName()).toLowerCase(Locale.ROOT);
-            if (cls.endsWith("link")) continue;
+        for (AccessibilityNodeInfo labelNode : nodes) {
+            if (!labelNode.isVisibleToUser() || !Policy.reject(text(labelNode))) continue;
             sawChoice = true;
 
-            AccessibilityNodeInfo parent = node.getParent();
-            for (int depth = 0; parent != null && depth < 12; depth++, parent = parent.getParent()) {
-                List<AccessibilityNodeInfo> group = new ArrayList<>();
-                flatten(parent, group, 0);
-                if (group.size() > 300) break;
-                StringBuilder context = new StringBuilder();
-                boolean editable = false;
-                for (AccessibilityNodeInfo item : group) {
-                    context.append(text(item)).append(' ');
-                    editable |= item.isEditable();
-                }
-                if (context.length() > 12000 || editable) break;
-                String contextText = context.toString();
-                if (!Policy.cookieContext(contextText) || Policy.paidChoice(contextText)) continue;
+            AccessibilityNodeInfo target = labelNode;
+            for (int targetDepth = 0; target != null && targetDepth < 5; targetDepth++, target = target.getParent()) {
+                String cls = String.valueOf(target.getClassName()).toLowerCase(Locale.ROOT);
+                if (!target.isVisibleToUser() || !target.isEnabled() || !target.isClickable() ||
+                    cls.endsWith("link")) continue;
 
-                lastClick = SystemClock.elapsedRealtime();
-                attempts++;
-                if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
-                    prefs().edit().putInt("clicks", prefs().getInt("clicks", 0) + 1).apply();
-                    report("Pressed the cookie rejection button" + (host.isEmpty() ? "" : " on " + host), host);
-                } else {
-                    report("Found the rejection button, but Android would not press it", host);
+                AccessibilityNodeInfo parent = target.getParent();
+                for (int depth = 0; parent != null && depth < 12; depth++, parent = parent.getParent()) {
+                    List<AccessibilityNodeInfo> group = new ArrayList<>();
+                    flatten(parent, group, 0);
+                    if (group.size() > 300) break;
+                    StringBuilder context = new StringBuilder();
+                    boolean editable = false;
+                    for (AccessibilityNodeInfo item : group) {
+                        context.append(text(item)).append(' ');
+                        editable |= item.isEditable();
+                    }
+                    if (context.length() > 12000 || editable) break;
+                    String contextText = context.toString();
+                    if (!Policy.cookieContext(contextText) || Policy.paidChoice(contextText)) continue;
+
+                    lastClick = SystemClock.elapsedRealtime();
+                    attempts++;
+                    if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                        prefs().edit().putInt("clicks", prefs().getInt("clicks", 0) + 1).apply();
+                        report("Pressed the cookie rejection button" + (host.isEmpty() ? "" : " on " + host), host);
+                    } else {
+                        report("Found the rejection button, but Android would not press it", host);
+                    }
+                    return;
                 }
-                return;
             }
         }
         if (!host.isEmpty()) report(sawChoice
