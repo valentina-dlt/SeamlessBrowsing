@@ -1,7 +1,7 @@
 /* Runs in Chrome's isolated extension world. No network, cookies API, or page eval. */
 (() => {
   const P = CookieCalmPolicy;
-  const KNOWN = '#onetrust-banner-sdk,#onetrust-pc-sdk,#CybotCookiebotDialog,#didomi-notice,#didomi-popup,.qc-cmp2-container,#usercentrics-root,#cookie-notice,#cookie-banner,.cookie-banner,.cookie-consent,[data-cookieconsent]';
+  const KNOWN = '#shopify-pc__banner,#onetrust-banner-sdk,#onetrust-pc-sdk,#CybotCookiebotDialog,#didomi-notice,#didomi-popup,.qc-cmp2-container,#usercentrics-root,#cookie-notice,#cookie-banner,.cookie-banner,.cookie-consent,[data-cookieconsent]';
   const BUTTONS = 'button,[role="button"],input[type="button"],input[type="submit"]';
   let settings = {enabled: true, pausedSites: []}, stopped = false, timer, observer;
   let actions = 0, lastAction = 0, opening = false;
@@ -23,7 +23,7 @@
     return found;
   }
   function containers(root) {
-    return [...root.querySelectorAll(`${KNOWN},[role="dialog"],[aria-modal="true"]`)]
+    return [...root.querySelectorAll(`${KNOWN},[role="dialog"],[role="alertdialog"],[aria-modal="true"]`)]
       .filter(el => visible(el) && P.cookieContext(el.innerText) && el.innerText.length < 35000);
   }
   function click(el) {
@@ -44,7 +44,11 @@
     for (const root of roots()) for (const box of containers(root)) {
       if (P.paidChoice(box.innerText)) continue;
       const buttons = [...box.querySelectorAll(BUTTONS)].filter(visible);
-      const reject = buttons.find(el => P.classify(label(el)) === 'reject');
+      // Shopify's native banner uses a plain Decline label and alertdialog role.
+      // Scope that otherwise ambiguous action to its verified provider markup.
+      const shopifyDecline = box.matches('#shopify-pc__banner') && buttons.find(el =>
+        el.id === 'shopify-pc__banner__btn-decline' && P.normalize(label(el)) === 'decline');
+      const reject = shopifyDecline || buttons.find(el => P.classify(label(el)) === 'reject');
       if (reject && click(reject)) { opening = false; return; }
       // Preference editing is restricted to two known CMP panels with explicit switches.
       const panel = box.matches('#onetrust-pc-sdk,#CybotCookiebotDialog') &&

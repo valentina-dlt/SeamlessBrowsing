@@ -15,6 +15,14 @@ const os = require('node:os');
     assert.equal(await page.locator('[role=dialog]').count(),0);
     assert.equal(await page.locator('#login').count(),1);
     assert.equal(await page.evaluate(()=>getComputedStyle(document.body).overflow),'visible');
+    const shopify = await fs.readFile(path.join(__dirname,'fixtures/shopify-croftmill.html'),'utf8');
+    await page.route('https://shopify-fixture.test/**',route=>route.fulfill({contentType:'text/html',body:shopify}));
+    await page.goto('https://shopify-fixture.test/');
+    await page.waitForFunction(()=>localStorage.getItem('consent')==='necessary');
+    assert.equal(await page.locator('#shopify-pc__banner').count(),0);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('unrelated')),null);
+    assert.equal(await page.locator('#login').count(),1);
+    console.log('Shopify regression: Decline pressed, unrelated Decline untouched');
     console.log('Browser fixture: rejected optional cookies, closed banner, preserved input and scrolling');
   } finally { await context.close(); await fs.rm(profile,{recursive:true,force:true}); }
 })().catch(error=>{console.error(error);process.exitCode=1});

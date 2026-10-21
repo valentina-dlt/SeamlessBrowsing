@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Cookie Calm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Quietly reject optional cookies. Local processing, with a pause for each site.",
   "permissions": [
     "storage",

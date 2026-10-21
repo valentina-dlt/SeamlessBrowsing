@@ -1,0 +1,16 @@
+<!doctype html><title>Shopify banner regression</title>
+<input id="login" placeholder="Email"><main style="height:1800px">Shop content</main>
+<button id="unrelated">Decline</button>
+<section id="shopify-pc__banner" class="shopify-pc__banner__dialog" role="alertdialog" aria-modal="false" aria-labelledby="shopify-pc__banner__body-title" style="position:fixed;bottom:0;background:white;padding:20px;display:block">
+<div class="shopify-pc__banner__wrapper"><div class="shopify-pc__banner__body">
+<h2 id="shopify-pc__banner__body-title">Cookie consent</h2><p>We and our partners use cookies for advertising and analytics unless you decline.</p></div>
+<div class="shopify-pc__banner__btns shopify-pc__banner__btns-granular">
+<button id="shopify-pc__banner__btn-manage-prefs" aria-haspopup="dialog" type="button"><span>Manage preferences</span></button>
+<button id="shopify-pc__banner__btn-accept" type="button">Accept</button>
+<button id="shopify-pc__banner__btn-decline" type="button">Decline</button>
+</div></div></section>
+<script>
+document.querySelector('#shopify-pc__banner__btn-decline').onclick=()=>{localStorage.setItem('consent','necessary');document.querySelector('section').remove()};
+document.querySelector('#shopify-pc__banner__btn-accept').onclick=()=>localStorage.setItem('consent','all');
+document.querySelector('#unrelated').onclick=()=>localStorage.setItem('unrelated','clicked');
+</script>
