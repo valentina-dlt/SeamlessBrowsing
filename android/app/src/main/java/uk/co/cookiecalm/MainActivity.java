@@ -2,6 +2,8 @@ package uk.co.cookiecalm;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.ClipboardManager;
+import android.content.ClipData;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -10,6 +12,8 @@ import android.view.accessibility.AccessibilityManager;
 import android.widget.*;
 import java.util.HashSet;
 import java.util.Set;
+import java.text.DateFormat;
+import java.util.Date;
 
 public final class MainActivity extends Activity {
     private LinearLayout layout;
@@ -70,6 +74,35 @@ public final class MainActivity extends Activity {
         String host = prefs().getString("lastHost", "");
         String status = prefs().getString("lastStatus", "Open Chrome and load a page to check it.");
         text("Status: " + status, 16);
+
+        int eventCount = prefs().getInt("diag_event_count", 0);
+        int scanCount = prefs().getInt("diag_scan_count", 0);
+        long eventAt = prefs().getLong("diag_event_time", 0);
+        long scanAt = prefs().getLong("diag_scan_time", 0);
+        String event = eventCount == 0 ? "No browser accessibility events seen yet" :
+            prefs().getString("diag_event_package", "unknown") + " (type " +
+            prefs().getString("diag_event_type", "?") + ", " +
+            DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(eventAt)) + ")";
+        String scan = scanCount == 0 ? "No scan yet" :
+            scanCount + " scans; last root " + prefs().getString("diag_root_package", "unknown") +
+            ", " + prefs().getString("diag_node_count", "0") + " nodes at " +
+            DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(scanAt));
+        String diagnosticText = "Browser event: " + event +
+            "\\nScan: " + scan +
+            "\\nCookie choice label: " + prefs().getString("diag_reject_label", "not checked") +
+            "\\nEmail close label: " + prefs().getString("diag_close_label", "not checked") +
+            "\\nDecision: " + prefs().getString("diag_decision", "no candidate decision recorded") +
+            "\\nClick: " + prefs().getString("diag_click_result", "not attempted") +
+            "\\nResult: " + prefs().getString("diag_result", "none");
+        text("On-device diagnostics (no page text is saved)", 18);
+        text(diagnosticText, 14);
+        button("Copy diagnostics", v -> {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(ClipData.newPlainText("Cookie Calm diagnostics", diagnosticText));
+                Toast.makeText(this, "Diagnostics copied", Toast.LENGTH_SHORT).show();
+            }
+        });
         if (!host.isEmpty()) {
             Set<String> paused = new HashSet<>(prefs().getStringSet("paused", new HashSet<>()));
             text("Most recently observed site: " + host, 16);
