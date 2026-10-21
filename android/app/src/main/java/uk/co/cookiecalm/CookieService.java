@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public final class CookieService extends AccessibilityService {
@@ -25,7 +26,6 @@ public final class CookieService extends AccessibilityService {
 
     @Override public void onServiceConnected() {
         super.onServiceConnected();
-        // Scan immediately when the service is enabled, even if Chrome is already open.
         handler.postDelayed(this::scan, 700);
     }
 
@@ -34,7 +34,7 @@ public final class CookieService extends AccessibilityService {
             !browsers.contains(event.getPackageName().toString()) ||
             !prefs().getBoolean("enabled", true) || pending) return;
         pending = true;
-        handler.postDelayed(() -> { pending = false; scan(); }, 500);
+        handler.postDelayed(() -> { pending = false; scan(); }, 350);
     }
 
     private void flatten(AccessibilityNodeInfo node, List<AccessibilityNodeInfo> out, int depth) {
@@ -49,13 +49,19 @@ public final class CookieService extends AccessibilityService {
         return value == null ? "" : value.toString();
     }
 
+    private String hint(AccessibilityNodeInfo node) {
+        CharSequence value = node.getHintText();
+        return value == null ? "" : value.toString();
+    }
+
     private String address(List<AccessibilityNodeInfo> nodes) {
         for (AccessibilityNodeInfo node : nodes) {
             String id = node.getViewIdResourceName();
             if (id == null) continue;
-            String lower = id.toLowerCase(java.util.Locale.ROOT);
-            if (lower.endsWith(":id/url_bar") || lower.endsWith(":id/url_bar_text") ||
-                lower.contains(":id/location_bar")) {
+            String lower = id.toLowerCase(Locale.ROOT);
+            boolean addressField = lower.contains("url_bar") || lower.contains("urlbar") ||
+                lower.contains("location_bar") || lower.contains("locationbar");
+            if (addressField) {
                 String host = Policy.host(text(node));
                 if (!host.isEmpty()) return host;
             }
@@ -69,26 +75,116 @@ public final class CookieService extends AccessibilityService {
         edit.apply();
     }
 
+    private boolean startedTyping(List<AccessibilityNodeInfo> nodes) {
+        for (AccessibilityNodeInfo node : nodes) {
+            if (!node.isFocused() || !node.isEditable()) continue;
+            CharSequence value = node.getText();
+            if (value != null && value.length() > 0) {
+                report("Waiting while you type", "");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasEmailField(List<AccessibilityNodeInfo> group) {
+        for (AccessibilityNodeInfo item : group) {
+            if (!item.isEditable()) continue;
+            String details = (hint(item) + " " + text(item) + " " +
+                String.valueOf(item.getViewIdResourceName())).toLowerCase(Locale.ROOT);
+            if (details.contains("email") || details.contains("e-mail")) return true;
+        }
+        return false;
+    }
+
+    private boolean hasEnteredFormText(List<AccessibilityNodeInfo> group) {
+        for (AccessibilityNodeInfo item : group) {
+            if (!item.isEditable()) continue;
+            CharSequence value = item.getText();
+            if (value != null && value.length() > 0) return true;
+        }
+        return false;
+    }
+
+    private boolean hasSensitiveForm(List<AccessibilityNodeInfo> group) {
+        for (AccessibilityNodeInfo item : group) {
+            String details = (hint(item) + " " + text(item) + " " +
+                String.valueOf(item.getViewIdResourceName())).toLowerCase(Locale.ROOT);
+            if (details.contains("password") || details.contains("credit card") ||
+                details.contains("card number") || details.contains("billing")) return true;
+        }
+        return false;
+    }
+
+    private boolean newsletterDialog(AccessibilityNodeInfo closeControl) {
+        AccessibilityNodeInfo parent = closeControl.getParent();
+        for (int depth = 0; parent != null && depth < 14; depth++, parent = parent.getParent()) {
+            List<AccessibilityNodeInfo> group = new ArrayList<>();
+            flatten(parent, group, 0);
+            if (group.size() > 300) break;
+            StringBuilder context = new StringBuilder();
+            for (AccessibilityNodeInfo item : group) {
+                context.append(text(item)).append(' ').append(hint(item)).append(' ');
+            }
+            if (context.length() > 10000) break;
+            if (Policy.newsletterContext(context.toString(), hasEmailField(group)) &&
+                !hasEnteredFormText(group) && !hasSensitiveForm(group)) return true;
+        }
+        return false;
+    }
+
+    private boolean dismissNewsletter(List<AccessibilityNodeInfo> nodes, String host) {
+        if (!prefs().getBoolean("closeNewsletters", true)) return false;
+        for (AccessibilityNodeInfo labelNode : nodes) {
+            if (!labelNode.isVisibleToUser()) continue;
+            String label = text(labelNode);
+            String id = String.valueOf(labelNode.getViewIdResourceName()).toLowerCase(Locale.ROOT);
+            boolean closeLabel = Policy.newsletterClose(label) ||
+                (id.contains("klaviyo") && id.contains("close"));
+            if (!closeLabel) continue;
+
+            AccessibilityNodeInfo target = labelNode;
+            for (int depth = 0; target != null && depth < 5; depth++, target = target.getParent()) {
+                if (target.isVisibleToUser() && target.isEnabled() && target.isClickable() &&
+                    !String.valueOf(target.getClassName()).toLowerCase(Locale.ROOT).endsWith("link") &&
+                    newsletterDialog(target)) {
+                    lastClick = SystemClock.elapsedRealtime();
+                    if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                        prefs().edit().putInt("clicks", prefs().getInt("clicks", 0) + 1).apply();
+                        report("Closed an email signup popup" + (host.isEmpty() ? "" : " on " + host), host);
+                    } else {
+                        report("Found the email popup close button, but Android would not press it", host);
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private void scan() {
         if (!prefs().getBoolean("enabled", true)) {
-            report("Automatic rejection is off", "");
+            report("Automatic popup handling is off", "");
             return;
         }
-        if (SystemClock.elapsedRealtime() - lastClick < 2500) return;
+        if (SystemClock.elapsedRealtime() - lastClick < 1200) return;
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null || root.getPackageName() == null ||
-            !browsers.contains(root.getPackageName().toString())) return;
+            !browsers.contains(root.getPackageName().toString())) {
+            report("Waiting for a Chrome or Samsung Internet page", "");
+            return;
+        }
 
         List<AccessibilityNodeInfo> nodes = new ArrayList<>();
         flatten(root, nodes, 0);
 
-        // Private tabs and focused text fields are deliberately excluded.
+        // Private tabs and text the user has started entering are deliberately excluded.
         for (AccessibilityNodeInfo n : nodes) {
-            if (n.isFocused() && n.isEditable()) {
+            String t = text(n).toLowerCase(Locale.ROOT);
+            if (n.isFocused() && n.isEditable() && t.length() > 0) {
                 report("Waiting while you type", "");
                 return;
             }
-            String t = text(n).toLowerCase(java.util.Locale.ROOT);
             if (t.contains("incognito") || t.equals("secret mode") || t.contains("private browsing")) {
                 report("Private browsing is paused", "");
                 return;
@@ -96,29 +192,29 @@ public final class CookieService extends AccessibilityService {
         }
 
         String host = address(nodes);
-        if (host.isEmpty()) {
-            report("Chrome page is open, but its address was not readable", "");
+        Set<String> paused = prefs().getStringSet("paused", new HashSet<>());
+        if (host.isEmpty() && !paused.isEmpty()) {
+            report("Can't verify the site to respect a pause; no popup was touched", "");
             return;
         }
-        report("Checking " + host, host);
-        if (prefs().getStringSet("paused", new HashSet<>()).contains(host)) {
+        if (!host.isEmpty() && paused.contains(host)) {
             report("Paused on " + host, host);
             return;
         }
         if (!host.equals(previousHost)) { previousHost = host; attempts = 0; }
         if (attempts >= 3) {
-            report("No rejection click succeeded after 3 tries on " + host, host);
+            report("No popup action succeeded after 3 tries" + (host.isEmpty() ? "" : " on " + host), host);
             return;
         }
+
+        if (dismissNewsletter(nodes, host)) return;
 
         boolean sawChoice = false;
         for (AccessibilityNodeInfo node : nodes) {
             if (!node.isVisibleToUser() || !node.isEnabled() || !node.isClickable() ||
                 !Policy.reject(text(node))) continue;
 
-            // Chrome may expose webpage controls as generic Views. The exact opt-out
-            // label plus nearby cookie context is the safety boundary; links are excluded.
-            String cls = String.valueOf(node.getClassName()).toLowerCase(java.util.Locale.ROOT);
+            String cls = String.valueOf(node.getClassName()).toLowerCase(Locale.ROOT);
             if (cls.endsWith("link")) continue;
             sawChoice = true;
 
@@ -126,7 +222,6 @@ public final class CookieService extends AccessibilityService {
             for (int depth = 0; parent != null && depth < 12; depth++, parent = parent.getParent()) {
                 List<AccessibilityNodeInfo> group = new ArrayList<>();
                 flatten(parent, group, 0);
-                // Ignore page-sized subtrees; continue only while the local dialog is bounded.
                 if (group.size() > 300) break;
                 StringBuilder context = new StringBuilder();
                 boolean editable = false;
@@ -142,16 +237,19 @@ public final class CookieService extends AccessibilityService {
                 attempts++;
                 if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                     prefs().edit().putInt("clicks", prefs().getInt("clicks", 0) + 1).apply();
-                    report("Pressed the cookie rejection button on " + host, host);
+                    report("Pressed the cookie rejection button" + (host.isEmpty() ? "" : " on " + host), host);
                 } else {
                     report("Found the rejection button, but Android would not press it", host);
                 }
                 return;
             }
         }
-        report(sawChoice
-            ? "Found a rejection label, but not inside a clear cookie dialog"
+        if (!host.isEmpty()) report(sawChoice
+            ? "Found a rejection label, but not inside a clear cookie dialog on " + host
             : "No accessible Reject all button found on " + host, host);
+        else report(sawChoice
+            ? "Found a rejection label, but not inside a clear cookie dialog"
+            : "No accessible Reject all button or email popup close control was found", "");
     }
 
     @Override public void onInterrupt() {
