@@ -178,6 +178,12 @@ public final class CookieService extends AccessibilityService {
         prefs().edit()
             .putLong("diag_scan_time", System.currentTimeMillis())
             .putInt("diag_scan_count", prefs().getInt("diag_scan_count", 0) + 1)
+            .putString("diag_root_package", "checking")
+            .putString("diag_node_count", "0")
+            .putString("diag_reject_label", "checking")
+            .putString("diag_close_label", "checking")
+            .putString("diag_decision", "no candidate decision recorded")
+            .putString("diag_click_result", "not attempted")
             .apply();
         if (!prefs().getBoolean("enabled", true)) {
             report("Automatic popup handling is off", "");
