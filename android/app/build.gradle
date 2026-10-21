@@ -31,6 +31,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Install beside the older app so popup fixes can be tried without removing it.
+            applicationIdSuffix '.popupfix'
+        }
         release {
             if (hasReleaseSigning) {
                 signingConfig signingConfigs.release
