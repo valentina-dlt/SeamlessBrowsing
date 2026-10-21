@@ -1,4 +1,11 @@
 plugins { id 'com.android.application' }
+
+def signingStorePath = System.getenv('ANDROID_SIGNING_KEY_PATH')
+def signingStorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+def signingKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
+def signingKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+def hasReleaseSigning = signingStorePath && signingStorePassword && signingKeyAlias && signingKeyPassword
+
 android {
     namespace 'uk.co.cookiecalm'
     compileSdk 35
@@ -10,4 +17,23 @@ android {
         versionName '0.1.2'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(signingStorePath)
+                storePassword signingStorePassword
+                keyAlias signingKeyAlias
+                keyPassword signingKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
 }
