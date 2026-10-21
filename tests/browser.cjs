@@ -50,6 +50,7 @@ const os = require('node:os');
     console.log('Newsletter regression: closes empty marketing overlays including delayed forms; preserves inline, login, entered, submit-only and support forms');
 
     await require('./providers.browser.cjs')(context);
+    await require('./next.browser.cjs')(context);
     console.log('Browser fixture: rejected optional cookies, closed banner, preserved input and scrolling');
   } finally { await context.close(); await fs.rm(profile,{recursive:true,force:true}); }
 })().catch(error=>{console.error(error);process.exitCode=1});

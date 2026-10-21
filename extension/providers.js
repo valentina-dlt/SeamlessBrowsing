@@ -4,7 +4,7 @@
 /* Provider control selectors reviewed against upstream source; see THIRD_PARTY.md. */
 (() => {
   const rules = [
-    {id:'OneTrust', box:'#onetrust-banner-sdk,#onetrust-pc-sdk', reject:'#onetrust-reject-all-handler,.ot-pc-refuse-all-handler', manage:'#onetrust-pc-btn-handler', panel:'#onetrust-pc-sdk', optional:'input.category-switch-handler:not(:disabled)', save:'.save-preference-btn-handler'},
+    {id:'OneTrust', box:'#onetrust-banner-sdk,#onetrust-pc-sdk', reject:'#onetrust-reject-all-handler,.ot-pc-refuse-all-handler', manage:'#onetrust-pc-btn-handler', panel:'#onetrust-pc-sdk', auxiliary:'#ot-pc-lst', optional:'input.category-switch-handler:not(:disabled)', save:'.save-preference-btn-handler'},
     {id:'Cookiebot', box:'#CybotCookiebotDialog', reject:'#CybotCookiebotDialogBodyButtonDecline,#CybotCookiebotDialogBodyLevelButtonLevelOptinDeclineAll', manage:'#CybotCookiebotDialogBodyLevelButtonCustomize,#CybotCookiebotDialogBodyButtonDetails', panel:'#CybotCookiebotDialog', optional:'#CybotCookiebotDialogBodyLevelButtonPreferences,#CybotCookiebotDialogBodyLevelButtonStatistics,#CybotCookiebotDialogBodyLevelButtonMarketing', save:'#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowallSelection,#CybotCookiebotDialogBodyButtonAcceptSelected'},
     {id:'Shopify', box:'#shopify-pc__banner', reject:'#shopify-pc__banner__btn-decline'},
     {id:'Didomi', box:'#didomi-notice,#didomi-popup,.didomi-popup-notice', reject:'#didomi-notice-disagree-button,.didomi-continue-without-agreeing'},
