@@ -42,3 +42,8 @@ test('Shopify Decline is eligible only inside its verified banner', async()=>{
     {shopify:true,buttonId:'shopify-pc__banner__btn-decline',label:'Decline',paused:true}
   ]) assert.equal((await fixture(options)).clicks,0,JSON.stringify(options));
 });
+
+test('O2 essential-only wording is handled by the actual content script', async()=>{
+  assert.equal((await fixture({label:'Accept essential cookies only'})).clicks,1);
+  assert.equal((await fixture({label:'Accept essential cookies only',text:'Subscription checkout'})).clicks,0);
+});

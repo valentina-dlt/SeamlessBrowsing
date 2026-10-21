@@ -10,7 +10,8 @@ public final class Policy {
         "reject all", "reject all cookies", "reject optional cookies", "reject non-essential cookies",
         "decline all", "decline optional cookies", "deny all", "refuse all", "only necessary",
         "necessary cookies only", "essential cookies only", "use necessary cookies only",
-        "use essential cookies only", "accept necessary cookies only", "accept only necessary cookies",
+        "use essential cookies only", "accept necessary cookies only", "accept only necessary cookies", "accept essential cookies only", "accept only essential cookies",
+        "only accept essential cookies", "only accept necessary cookies",
         "continue without accepting", "continue without agreeing", "tout refuser", "refuser tout",
         "alle ablehnen", "nur notwendige cookies", "rechazar todo", "rechazar todas", "solo cookies necesarias"
     ));

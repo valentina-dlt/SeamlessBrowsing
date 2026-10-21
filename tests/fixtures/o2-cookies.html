@@ -1,0 +1,11 @@
+<!doctype html><title>O2 cookie regression</title><main>Shop content</main>
+<div class="cmOverlayCcontainer" aria-modal="true" role="dialog" tabindex="-1" aria-label="Our Cookies" style="position:fixed;bottom:0;background:white;padding:20px">
+<div class="cm-overlay-bottom-container"><div class="cm-overlay-bottom-text-container"><h2 id="modalHeading">Our cookies</h2><p>This site uses cookies to personalise adverts and analyse website use.</p></div>
+<div class="cm-overlay-bottom-button-container">
+<button class="cm-button cm-button-solid" data-js-btn-accept-all-cookies="" aria-label="Accept all cookies" id="pref_optin"> Accept all cookies </button>
+<button class="cm-button cm-button-solid" data-js-btn-accept-essential-cookies="" aria-label="Accept essential cookies only" id="privacy_pref_optout"> Accept essential cookies only </button>
+<button class="cm-button cm-button-outline" data-js-btn-manage-cookies="" aria-label="Manage cookies" id="openPreferences"> Manage cookies </button>
+</div></div></div><script>
+document.querySelector('#privacy_pref_optout').onclick=()=>{localStorage.setItem('consent','essential');document.querySelector('[role=dialog]').remove()};
+document.querySelector('#pref_optin').onclick=()=>localStorage.setItem('consent','all');
+</script>
