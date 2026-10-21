@@ -18,6 +18,6 @@ Direct opt-out buttons in recognized cookie containers and cookie dialogs; open 
 
 Run npm install, npm test, and npx playwright install chromium; npm run test:browser loads the actual extension in an isolated fixture browser. Android: Gradle 8.11.1 and JDK 17, gradle -p android :app:assembleDebug :app:lintDebug. Java policy tests also run in CI. GitHub Actions packages the desktop extension and APK separately.
 
-Local check, 21 October 2026: six JavaScript tests and Java policy tests pass. Full browser test blocked locally by a missing Playwright browser binary; full Android build blocked locally by missing Android SDK/JDK17/Gradle. CI and phone validation remain required. Do not describe this preview as installed or comprehensively verified.
+Verified 21 October 2026: six JavaScript tests, Java policy tests, the real Chromium extension fixture, Android APK assembly, and Android lint passed in [GitHub Actions run 39636563575](https://github.com/valentina-dlt/SeamlessBrowsing/actions/runs/39636563575). Download the Chrome ZIP and Samsung experimental APK from that run’s Artifacts section. Installation, real-site coverage, Chrome settings sync, and Samsung behaviour have not yet been verified on the user’s devices. This is a development preview; unknown banners may remain visible.
 
 See RESEARCH.md for sources and design decisions.
