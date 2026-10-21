@@ -8,7 +8,7 @@ import java.net.URI;
 public final class Policy {
     private static final Set<String> REJECT = new HashSet<>(Arrays.asList(
         "reject all", "reject all cookies", "reject optional cookies", "reject non-essential cookies",
-        "decline all", "decline optional cookies", "deny all", "refuse all", "only necessary",
+        "decline all", "decline optional cookies", "deny all", "refuse all", "only necessary", "necessary only",
         "necessary cookies only", "essential cookies only", "use necessary cookies only",
         "use essential cookies only", "accept necessary cookies only", "accept only necessary cookies", "accept essential cookies only", "accept only essential cookies",
         "only accept essential cookies", "only accept necessary cookies",
