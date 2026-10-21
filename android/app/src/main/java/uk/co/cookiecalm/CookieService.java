@@ -118,9 +118,8 @@ public final class CookieService extends AccessibilityService {
 
             // Chrome may expose webpage controls as generic Views. The exact opt-out
             // label plus nearby cookie context is the safety boundary; links are excluded.
-            String role = String.valueOf(node.getRoleDescription()).toLowerCase(java.util.Locale.ROOT);
             String cls = String.valueOf(node.getClassName()).toLowerCase(java.util.Locale.ROOT);
-            if (role.contains("link") || cls.endsWith("link")) continue;
+            if (cls.endsWith("link")) continue;
             sawChoice = true;
 
             AccessibilityNodeInfo parent = node.getParent();
